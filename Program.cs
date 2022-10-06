@@ -34,8 +34,7 @@ Console.WriteLine("= sse query");
 
     await using var stream = await response.Content.ReadAsStreamAsync();
     using var sr = new StreamReader(stream);
-    string? line = null;
-    while ((line = await sr.ReadLineAsync()) != null)
+    while ((await sr.ReadLineAsync()) is string line)
     {
         Console.WriteLine(line);
     }
@@ -55,8 +54,7 @@ Console.WriteLine("= sse subscription");
 
     await using var stream = await response.Content.ReadAsStreamAsync();
     using var sr = new StreamReader(stream);
-    string? line = null;
-    while ((line = await sr.ReadLineAsync()) != null)
+    while ((await sr.ReadLineAsync()) is string line)
     {
         Console.WriteLine(line);
     }
