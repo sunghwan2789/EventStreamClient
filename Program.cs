@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using Serilog;
 
 // use https://github.com/sunghwan2789/gql-playground as a server.
 const string origin = "https://localhost:7271";
@@ -41,7 +42,15 @@ Console.WriteLine("= sse query");
 }
 
 Console.WriteLine("= sse subscription");
+await Task.WhenAll(Enumerable.Range(1, 2).Select(x => Task.Run(async () =>
 {
+    var logger = new LoggerConfiguration()
+        .WriteTo.Console(
+            outputTemplate: "{@No}] {Message:lj}{NewLine}"
+        )
+        .Enrich.WithProperty("No", x)
+        .CreateLogger();
+
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
         Content = JsonContent.Create(new
@@ -56,6 +65,6 @@ Console.WriteLine("= sse subscription");
     using var sr = new StreamReader(stream);
     while ((await sr.ReadLineAsync()) is string line)
     {
-        Console.WriteLine(line);
+        logger.Information(line);
     }
-}
+})));
