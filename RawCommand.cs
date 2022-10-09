@@ -11,13 +11,17 @@ public class RawCommand : Command
     {
         var url = DefaultOptions.Url;
         var httpVersion = DefaultOptions.HttpVersion;
+        var queryPayload = DefaultOptions.QueryPayload;
+        var subscriptionPayload = DefaultOptions.SubscriptionPayload;
 
         Add(url);
         Add(httpVersion);
-        this.SetHandler(Handle, url, httpVersion);
+        Add(queryPayload);
+        Add(subscriptionPayload);
+        this.SetHandler(Handle, url, httpVersion, queryPayload, subscriptionPayload);
     }
 
-    private async Task Handle(string url, string httpVersionInput)
+    private async Task Handle(string url, string httpVersionInput, string queryPayload, string subscriptionPayload)
     {
         var httpVersion = Version.Parse(httpVersionInput);
 
@@ -27,7 +31,7 @@ public class RawCommand : Command
         {
             using var request = JsonContent.Create(new
             {
-                query = "{ id }"
+                query = queryPayload
             });
             using var response = await client.PostAsync(string.Empty, request);
             Console.WriteLine(response.Version);
@@ -42,7 +46,7 @@ public class RawCommand : Command
             {
                 Content = JsonContent.Create(new
                 {
-                    query = "{ id }"
+                    query = queryPayload
                 }),
                 Version = httpVersion,
             };
@@ -72,7 +76,7 @@ public class RawCommand : Command
             {
                 Content = JsonContent.Create(new
                 {
-                    query = "subscription { bookPublished(seed: 2) { id } }"
+                    query = subscriptionPayload
                 }),
                 Version = httpVersion,
             };

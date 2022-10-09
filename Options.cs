@@ -8,4 +8,10 @@ public static class DefaultOptions
     public static readonly Argument<string> Url = new("url", getDefaultValue: () => "https://localhost:7271/graphql");
     public static readonly Option<string> HttpVersion = new Option<string>("--http", getDefaultValue: () => "2.0")
         .FromAmong("1.1", "2.0");
+    public static readonly Option<string> QueryPayload = new("--query", getDefaultValue: () => @"
+        { id }
+        ");
+    public static readonly Option<string> SubscriptionPayload = new("--subscription", getDefaultValue: () => @"
+        subscription { bookPublished(seed: 2) { id } }
+        ");
 }
