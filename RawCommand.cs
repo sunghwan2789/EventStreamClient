@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using Serilog;
 
 namespace EventStreamClient;
@@ -25,7 +24,10 @@ public class RawCommand : Command
     {
         var httpVersion = Version.Parse(httpVersionInput);
 
-        var client = CreateHttpClient(url, httpVersion);
+        var client = SseClientFactory.Create(
+            url,
+            httpVersion,
+            onConnect: () => Console.WriteLine("make a new connection"));
 
         Console.WriteLine("= http query");
         {
@@ -91,25 +93,5 @@ public class RawCommand : Command
                 logger.Information(line);
             }
         })));
-    }
-
-    private static HttpClient CreateHttpClient(string origin, Version httpVersion)
-    {
-        var handler = new SocketsHttpHandler();
-        handler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, _) => true;
-        handler.ConnectCallback = async (context, cancellationToken) =>
-        {
-            Console.WriteLine("make a new connection");
-            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            await socket.ConnectAsync(context.DnsEndPoint, cancellationToken);
-            return new NetworkStream(socket, true);
-        };
-
-        return new HttpClient(handler)
-        {
-            BaseAddress = new Uri(origin),
-            DefaultRequestVersion = httpVersion,
-            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
-        };
     }
 }
