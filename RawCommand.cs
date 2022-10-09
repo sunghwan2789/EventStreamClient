@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using Serilog;
@@ -10,18 +9,17 @@ public class RawCommand : Command
 {
     public RawCommand() : base("raw")
     {
-        // use https://github.com/sunghwan2789/gql-playground as a server.
-        var url = new Argument<string>("url", getDefaultValue: () => "https://localhost:7271/graphql");
-        var http2 = new Option<bool>("--http2");
+        var url = DefaultOptions.Url;
+        var httpVersion = DefaultOptions.HttpVersion;
 
         Add(url);
-        Add(http2);
-        this.SetHandler(Handle, url, http2);
+        Add(httpVersion);
+        this.SetHandler(Handle, url, httpVersion);
     }
 
-    private async Task Handle(string url, bool http2)
+    private async Task Handle(string url, string httpVersionInput)
     {
-        var httpVersion = http2 ? HttpVersion.Version20 : HttpVersion.Version11;
+        var httpVersion = Version.Parse(httpVersionInput);
 
         var client = CreateHttpClient(url, httpVersion);
 
