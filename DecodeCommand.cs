@@ -51,10 +51,10 @@ public class DecodeCommand : Command
             {
                 result = await reader.ReadAsync(default);
             }
-            // if (result.IsCompleted)
-            // {
-            //     return;
-            // }
+            if (result.IsCompleted)
+            {
+                return;
+            }
 
             if (parser.Parse(result, out var consumed, out var examined, out var eventStream))
             {
@@ -131,19 +131,20 @@ public class DecodeCommand : Command
 
             if (!dispatch)
             {
+                consumed = lines.Consumed;
+                examined = lines.Examined;
                 eventStream = null;
             }
             else
             {
+                consumed = lines.Consumed;
+                examined = consumed;
                 eventStream = new EventStream
                 {
                     EventType = eventType,
                     Data = data.ToString(),
                 };
             }
-
-            consumed = lines.Consumed;
-            examined = lines.Examined;
 
             return dispatch;
         }
