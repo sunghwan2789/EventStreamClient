@@ -58,8 +58,7 @@ public class DecodeCommand : Command
 
             if (parser.Parse(result, out var consumed, out var examined, out var eventStream))
             {
-                Console.WriteLine("type: {0}", eventStream.EventType);
-                Console.WriteLine("data: {0}", eventStream.Data);
+                Console.WriteLine("{0}: {1}", eventStream.EventType, eventStream.Data);
             }
             reader.AdvanceTo(consumed, examined);
         }
