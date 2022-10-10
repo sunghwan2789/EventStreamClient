@@ -30,12 +30,18 @@ public class DecodeCommand : Command
             {
                 query = queryPayload
             }),
+#if NETCOREAPP3_1_OR_GREATER
             Version = HttpVersion.Version20,
+#endif
         };
         request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse(input: "text/event-stream"));
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
+#if NETCOREAPP3_1_OR_GREATER
         await using var stream = await response.Content.ReadAsStreamAsync();
+#else
+        using var stream = await response.Content.ReadAsStreamAsync();
+#endif
         var reader = PipeReader.Create(stream);
         var parser = new EventStreamParser();
 
@@ -88,7 +94,11 @@ public class DecodeCommand : Command
                     break;
                 }
 
+#if NET5_0_OR_GREATER
                 var line = Encoding.UTF8.GetString(buffer).AsSpan();
+#else
+                var line = Encoding.UTF8.GetString(buffer.ToArray()).AsSpan();
+#endif
 
                 var column = line.IndexOf(':');
 

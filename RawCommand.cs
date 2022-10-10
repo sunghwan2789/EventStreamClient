@@ -56,7 +56,11 @@ public class RawCommand : Command
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             Console.WriteLine(response.Version);
 
+#if NETCOREAPP3_1_OR_GREATER
             await using var stream = await response.Content.ReadAsStreamAsync();
+#else
+            using var stream = await response.Content.ReadAsStreamAsync();
+#endif
             using var sr = new StreamReader(stream);
             while ((await sr.ReadLineAsync()) is string line)
             {
@@ -86,7 +90,11 @@ public class RawCommand : Command
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             Console.WriteLine(response.Version);
 
+#if NETCOREAPP3_1_OR_GREATER
             await using var stream = await response.Content.ReadAsStreamAsync();
+#else
+            using var stream = await response.Content.ReadAsStreamAsync();
+#endif
             using var sr = new StreamReader(stream);
             while ((await sr.ReadLineAsync()) is string line)
             {
