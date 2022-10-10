@@ -71,6 +71,9 @@ public class DecodeCommand : Command
         private static ReadOnlySpan<char> EventField => new[] { 'e', 'v', 'e', 'n', 't' };
         private static ReadOnlySpan<char> DataField => new[] { 'd', 'a', 't', 'a' };
 
+        private string _eventType = string.Empty;
+        private readonly StringBuilder _data = new();
+
         public bool Parse(
             in ReadResult result,
             out SequencePosition consumed,
@@ -78,8 +81,6 @@ public class DecodeCommand : Command
             out EventStream? eventStream)
         {
             var dispatch = false;
-            var eventType = string.Empty;
-            var data = new StringBuilder();
 
             var lines = new LineEnumerator(result);
 
@@ -120,11 +121,11 @@ public class DecodeCommand : Command
 
                 if (fieldName.SequenceEqual(EventField))
                 {
-                    eventType = fieldValue.ToString();
+                    _eventType = fieldValue.ToString();
                 }
                 else if (fieldName.SequenceEqual(DataField))
                 {
-                    data.AppendLine(fieldValue.ToString());
+                    _data.AppendLine(fieldValue.ToString());
                 }
             }
 
@@ -138,15 +139,17 @@ public class DecodeCommand : Command
             {
                 consumed = lines.Consumed;
                 examined = consumed;
-                if (data.Length > 0)
+                if (_data.Length > 0)
                 {
-                    data.Length--;
+                    _data.Length--;
                 }
                 eventStream = new EventStream
                 {
-                    EventType = eventType,
-                    Data = data.ToString(),
+                    EventType = _eventType,
+                    Data = _data.ToString(),
                 };
+                _eventType = string.Empty;
+                _data.Clear();
             }
 
             return dispatch;
