@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <!-- <TargetFramework>netstandard2.0</TargetFramework> -->
-    <LangVersion Condition="'$(TargetFramework)' == 'netstandard2.0'">preview</LangVersion>
+    <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

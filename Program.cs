@@ -7,6 +7,7 @@ new CommandLineBuilder(new RootCommand()
 {
     new RawCommand(),
     new DecodeCommand(),
+    new StreamCommand(),
 })
     .UseDefaults()
     .Build()
