@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.CommandLine;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http.Headers;
@@ -45,6 +46,14 @@ public class DecodeCommand : Command
         var reader = PipeReader.Create(stream);
         var parser = new EventStreamParser();
 
+        var count = 0;
+        var stopwatch = Stopwatch.StartNew();
+        using var _ = new Timer(_ =>
+        {
+            var elapsed = stopwatch.Elapsed;
+            Console.WriteLine($"{count / elapsed.TotalSeconds:F1} events / sec | {elapsed.TotalSeconds:F0}s elapsed | total: {count}");
+        }, null, 1000, 1000);
+
         while (true)
         {
             if (!reader.TryRead(out var result))
@@ -58,7 +67,8 @@ public class DecodeCommand : Command
 
             if (parser.Parse(result, out var consumed, out var examined, out var eventStream))
             {
-                Console.WriteLine("{0}: {1}", eventStream.EventType, eventStream.Data);
+                count++;
+                // Console.WriteLine("{0}: {1}", eventStream.EventType, eventStream.Data);
             }
             reader.AdvanceTo(consumed, examined);
         }
