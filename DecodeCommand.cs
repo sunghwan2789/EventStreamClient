@@ -139,6 +139,10 @@ public class DecodeCommand : Command
             {
                 consumed = lines.Consumed;
                 examined = consumed;
+                if (data.Length > 0)
+                {
+                    data.Length--;
+                }
                 eventStream = new EventStream
                 {
                     EventType = eventType,
