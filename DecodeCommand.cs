@@ -65,7 +65,9 @@ public class DecodeCommand : Command
                 return;
             }
 
-            if (parser.Parse(result, out var consumed, out var examined, out var eventStream))
+            var buffer = result.Buffer;
+
+            if (parser.Parse(ref buffer, out var consumed, out var examined, out var eventStream))
             {
                 count++;
                 // Console.WriteLine("{0}: {1}", eventStream.EventType, eventStream.Data);
@@ -86,18 +88,18 @@ public class DecodeCommand : Command
         private readonly StringBuilder _data = new();
 
         public bool Parse(
-            in ReadResult result,
+            ref ReadOnlySequence<byte> buffer,
             out SequencePosition consumed,
             out SequencePosition examined,
             out EventStream? eventStream)
         {
             var dispatch = false;
 
-            var lines = new LineEnumerator(result, _lineEndingState);
+            var lines = new LineEnumerator(buffer, _lineEndingState);
 
             while (lines.MoveNext())
             {
-                var buffer = lines.Current;
+                buffer = lines.Current;
 
                 if (buffer.IsEmpty)
                 {
@@ -181,14 +183,14 @@ public class DecodeCommand : Command
             private SequencePosition _lineEnd;
             private LineEndingState _state;
 
-            public LineEnumerator(in ReadResult result)
-                : this(result, LineEndingState.Default)
+            public LineEnumerator(in ReadOnlySequence<byte> buffer)
+                : this(buffer, LineEndingState.Default)
             {
             }
 
-            public LineEnumerator(in ReadResult result, LineEndingState state)
+            public LineEnumerator(in ReadOnlySequence<byte> buffer, LineEndingState state)
             {
-                _buffer = result.Buffer;
+                _buffer = buffer;
                 _trimmedLineEnd = _buffer.Start;
                 _lineEnd = _buffer.Start;
                 _state = state;
