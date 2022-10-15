@@ -175,7 +175,7 @@ public class DecodeCommand : Command
         private ref struct LineEnumerator
         {
             private ReadOnlySequence<byte> _buffer;
-            private SequencePosition _trimmedLineEnd;
+            private ReadOnlySequence<byte> _current;
             private SequencePosition _lineEnd;
             private LineEndingState _state;
 
@@ -187,12 +187,11 @@ public class DecodeCommand : Command
             public LineEnumerator(in ReadOnlySequence<byte> buffer, LineEndingState state)
             {
                 _buffer = buffer;
-                _trimmedLineEnd = _buffer.Start;
                 _lineEnd = _buffer.Start;
                 _state = state;
             }
 
-            public ReadOnlySequence<byte> Current => _buffer.Slice(0, _trimmedLineEnd);
+            public ReadOnlySequence<byte> Current => _current;
             public SequencePosition Consumed => _lineEnd;
             public SequencePosition Examined => _buffer.End;
             public LineEndingState LineEndingState => _state;
@@ -209,12 +208,12 @@ public class DecodeCommand : Command
                     return false;
                 }
 
-                _trimmedLineEnd = GetLineEnd(_buffer);
+                var trimmedLineEnd = GetLineEnd(_buffer);
 
-                var isLine = !_trimmedLineEnd.Equals(_buffer.End);
+                var isLine = !trimmedLineEnd.Equals(_buffer.End);
 
                 // The stream does not have a line ending. We need to read more.
-                if (!isLine || !TryGetByte(_buffer, _trimmedLineEnd, out var lineEnding))
+                if (!isLine || !TryGetByte(_buffer, trimmedLineEnd, out var lineEnding))
                 {
                     return false;
                 }
@@ -223,16 +222,18 @@ public class DecodeCommand : Command
                 {
                     _state = LineEndingState.Default;
 
-                    if (_buffer.Start.Equals(_trimmedLineEnd) && lineEnding == ByteLf)
+                    if (_buffer.Start.Equals(trimmedLineEnd) && lineEnding == ByteLf)
                     {
-                        _lineEnd = _buffer.GetPosition(1, _trimmedLineEnd);
+                        _lineEnd = _buffer.GetPosition(1, trimmedLineEnd);
                         return MoveNext();
                     }
                 }
 
+                _current = _buffer.Slice(0, trimmedLineEnd);
+
                 if (lineEnding == ByteCr)
                 {
-                    var lfPosition = _buffer.GetPosition(1, _trimmedLineEnd);
+                    var lfPosition = _buffer.GetPosition(1, trimmedLineEnd);
                     var lf = ByteCr;
 
                     // Treat CR as the end of line since there is no LF.
@@ -244,12 +245,12 @@ public class DecodeCommand : Command
                     }
 
                     _lineEnd = lf != ByteLf
-                        ? _buffer.GetPosition(1, _trimmedLineEnd)
-                        : _buffer.GetPosition(2, _trimmedLineEnd);
+                        ? _buffer.GetPosition(1, trimmedLineEnd)
+                        : _buffer.GetPosition(2, trimmedLineEnd);
                 }
                 else
                 {
-                    _lineEnd = _buffer.GetPosition(1, _trimmedLineEnd);
+                    _lineEnd = _buffer.GetPosition(1, trimmedLineEnd);
                 }
 
                 return true;
