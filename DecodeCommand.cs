@@ -67,12 +67,12 @@ public class DecodeCommand : Command
 
             var buffer = result.Buffer;
 
-            if (parser.Parse(ref buffer, out var consumed, out var examined, out var eventStream))
+            if (parser.Parse(ref buffer, out var eventStream))
             {
                 count++;
                 // Console.WriteLine("{0}: {1}", eventStream.EventType, eventStream.Data);
             }
-            reader.AdvanceTo(consumed, examined);
+            reader.AdvanceTo(buffer.Start, buffer.End);
         }
     }
 
@@ -89,8 +89,6 @@ public class DecodeCommand : Command
 
         public bool Parse(
             ref ReadOnlySequence<byte> buffer,
-            out SequencePosition consumed,
-            out SequencePosition examined,
             out EventStream? eventStream)
         {
             var dispatch = false;
@@ -99,18 +97,18 @@ public class DecodeCommand : Command
 
             while (lines.MoveNext())
             {
-                buffer = lines.Current;
+                var lineBuffer = lines.Current;
 
-                if (buffer.IsEmpty)
+                if (lineBuffer.IsEmpty)
                 {
                     dispatch = true;
                     break;
                 }
 
 #if NET5_0_OR_GREATER
-                var line = Encoding.UTF8.GetString(buffer).AsSpan();
+                var line = Encoding.UTF8.GetString(lineBuffer).AsSpan();
 #else
-                var line = Encoding.UTF8.GetString(buffer.ToArray()).AsSpan();
+                var line = Encoding.UTF8.GetString(lineBuffer.ToArray()).AsSpan();
 #endif
 
                 var column = line.IndexOf(':');
@@ -146,14 +144,12 @@ public class DecodeCommand : Command
 
             if (!dispatch)
             {
-                consumed = lines.Consumed;
-                examined = lines.Examined;
+                buffer = buffer.Slice(lines.Consumed);
                 eventStream = null;
             }
             else
             {
-                consumed = lines.Consumed;
-                examined = consumed;
+                buffer = buffer.Slice(lines.Consumed, lines.Consumed);
                 if (_data.Length > 0)
                 {
                     _data.Length--;
