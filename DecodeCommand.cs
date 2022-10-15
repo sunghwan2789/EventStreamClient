@@ -81,6 +81,7 @@ public class DecodeCommand : Command
         private static ReadOnlySpan<char> EventField => new[] { 'e', 'v', 'e', 'n', 't' };
         private static ReadOnlySpan<char> DataField => new[] { 'd', 'a', 't', 'a' };
 
+        private LineEndingState _lineEndingState;
         private string _eventType = string.Empty;
         private readonly StringBuilder _data = new();
 
@@ -92,7 +93,7 @@ public class DecodeCommand : Command
         {
             var dispatch = false;
 
-            var lines = new LineEnumerator(result);
+            var lines = new LineEnumerator(result, _lineEndingState);
 
             while (lines.MoveNext())
             {
@@ -139,6 +140,8 @@ public class DecodeCommand : Command
                 }
             }
 
+            _lineEndingState = lines.LineEndingState;
+
             if (!dispatch)
             {
                 consumed = lines.Consumed;
@@ -173,22 +176,28 @@ public class DecodeCommand : Command
 
         private ref struct LineEnumerator
         {
-            private readonly bool _isCompleted;
             private ReadOnlySequence<byte> _buffer;
             private SequencePosition _trimmedLineEnd;
             private SequencePosition _lineEnd;
+            private LineEndingState _state;
 
             public LineEnumerator(in ReadResult result)
+                : this(result, LineEndingState.Default)
             {
-                _isCompleted = result.IsCompleted;
+            }
+
+            public LineEnumerator(in ReadResult result, LineEndingState state)
+            {
                 _buffer = result.Buffer;
                 _trimmedLineEnd = _buffer.Start;
                 _lineEnd = _buffer.Start;
+                _state = state;
             }
 
             public ReadOnlySequence<byte> Current => _buffer.Slice(0, _trimmedLineEnd);
             public SequencePosition Consumed => _lineEnd;
             public SequencePosition Examined => _buffer.End;
+            public LineEndingState LineEndingState => _state;
 
             public bool MoveNext()
             {
@@ -212,17 +221,28 @@ public class DecodeCommand : Command
                     return false;
                 }
 
+                if (_state == LineEndingState.CRLF)
+                {
+                    _state = LineEndingState.Default;
+
+                    if (_buffer.Start.Equals(_trimmedLineEnd) && lineEnding == ByteLf)
+                    {
+                        _lineEnd = _buffer.GetPosition(1, _trimmedLineEnd);
+                        return MoveNext();
+                    }
+                }
+
                 if (lineEnding == ByteCr)
                 {
                     var lfPosition = _buffer.GetPosition(1, _trimmedLineEnd);
-                    var endOfStream = _isCompleted && lfPosition.Equals(_buffer.End);
+                    var lf = ByteCr;
 
-                    // Need 1 more byte to make a CRLF pair, except the end of stream.
-                    if (!TryGetByte(_buffer, lfPosition, out var lf)
-                        && !endOfStream)
+                    // Treat CR as the end of line since there is no LF.
+                    // To be precise, transit state to consume LF later.
+                    if (lfPosition.Equals(_buffer.End)
+                        || !TryGetByte(_buffer, lfPosition, out lf))
                     {
-                        // _buffer = _buffer.Slice(0, lfPosition);
-                        return false;
+                        _state = LineEndingState.CRLF;
                     }
 
                     _lineEnd = lf != ByteLf
@@ -236,6 +256,12 @@ public class DecodeCommand : Command
 
                 return true;
             }
+        }
+
+        public enum LineEndingState
+        {
+            Default,
+            CRLF,
         }
 
         private static SequencePosition GetLineEnd(in ReadOnlySequence<byte> buffer)
