@@ -216,7 +216,10 @@ public class DecodeCommand : Command
                 {
                     _state = LineEndingState.Default;
 
-                    if (_buffer.Start.Equals(trimmedLineEnd) && lineEnding == ByteLf)
+                    // Consume LF paired to CRLF.
+                    Span<byte> firstByte = stackalloc byte[1];
+                    _buffer.Slice(0, 1).CopyTo(firstByte);
+                    if (firstByte[0] == ByteLf)
                     {
                         _buffer = _buffer.Slice(lineEnd);
                         return MoveNext();
