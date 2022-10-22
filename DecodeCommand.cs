@@ -200,7 +200,7 @@ public class DecodeCommand : Command
                     return false;
                 }
 
-                var trimmedLineEnd = GetLineEnd(_buffer);
+                var trimmedLineEnd = FindLineEnd(_buffer);
 
                 var isLine = !trimmedLineEnd.Equals(_buffer.End);
 
@@ -255,18 +255,19 @@ public class DecodeCommand : Command
             CRLF,
         }
 
-        private static SequencePosition GetLineEnd(in ReadOnlySequence<byte> buffer)
+        private static SequencePosition FindLineEnd(in ReadOnlySequence<byte> buffer)
         {
-            var offset = 0;
+            var position = buffer.Start;
+            var origin = position;
 
-            foreach (var segment in buffer)
+            while (buffer.TryGet(ref position, out var segment))
             {
                 if (segment.Span.IndexOfAny(ByteCr, ByteLf) is var lineEnd && lineEnd != -1)
                 {
-                    return buffer.GetPosition(offset + lineEnd);
+                    return buffer.GetPosition(lineEnd, origin);
                 }
 
-                offset += segment.Length;
+                origin = position;
             }
 
             return buffer.End;
